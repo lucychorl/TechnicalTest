@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" content="width=device-width, initial-scale=1.0">
+    <title>EPOS NOW</title>
+    <link rel="stylesheet" type="text/css" href="styles/site.css" />
+    <link rel="stylesheet" type="text/css" href="styles/bootstrap.css" />
+    <script type="text/javascript" src="scripts/functions.js"></script>
+    <script type="text/javascript" src="scripts/bootstrap.js"></script>
+</head>
+<body>
+    <div class="container">
+        <script>
+            var currentDate = new Date(),
+                day = currentDate.getDate(),
+                month = currentDate.getMonth() + 1,
+                year = currentDate.getFullYear();
+            document.write("<div id='DateTime'><p style='text-align:right;'>" + day + "/" + month + "/" + year + " ")
+            var currentTime = new Date(),
+                hours = currentTime.getHours(),
+                minutes = currentTime.getMinutes();
+
+            if (minutes < 10) {
+                minutes = "0" + minutes;
+            }
+
+            document.write(hours + ":" + minutes + "</p></div>")
+
+
+        </script>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="row">
+                    <h1>Lucy Cafe Menu</p>
+                </div>
+                <div class="row fetch-items">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="row">
+                    <h1>
+                        Order</p>
+                        <button onclick="myFunction()" style="font-size:small;" value="Clear Order">Clear Order</button>
+                </div>
+                <div class="row">
+                    <ul id="list" style="display:block;"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        //REMOVE ITEMS FROM BASKET
+        function myFunction() {
+            var list = document.getElementById("list");
+            while (list.hasChildNodes()) {
+                list.removeChild(list.firstChild);
+            }
+        }
+
+        //ON CLICK TO ADD TO BASKET
+        addToBasket = function (id) {
+            var ul = document.getElementById("list");
+            var li = document.createElement("li");
+            li.setAttribute('id', id)
+            li.appendChild(document.createTextNode(id));
+            ul.appendChild(li)
+        }
+
+        //BUILDING THE PRODUCT SCREEN
+        // Fetch Items
+        let fetchItems =
+            document.querySelector('.fetch-items')
+        zlFetch('https://api.eposnowhq.com/api/V2/Product', {
+            headers: {
+                'Authorization': 'Basic MTZWREhQTlpJV1BQTEVGM0U2N1cxQlJEQ1lWMDcwWkU6SzVMVFVUWVFSMllKMjlJUDROUUxMTzFORUhGNzlIT0c='
+            }
+        })
+            .then(data => listItems(fetchItems, data))
+
+        // List Items
+        function listItems(listDiv, items) {
+            console.log(items)
+            let ul = document.createElement('ul')
+            items.forEach(item => {
+                let li = document.createElement('li')
+                li.innerHTML = `<p id="${item.Name}"onClick="addToBasket()">${item.Name}</p><p id="${item.SalePrice}">£${item.SalePrice}</p>`
+
+                ul.append(li)
+            })
+            console.log(ul)
+            listDiv.append(ul)
+        }
+        /* global fetch */
+        function zlFetch(url, options = undefined) {
+            return fetch(url, optionsHandler(options))
+                .then(handleResponse)
+        }
+
+        function optionsHandler(options) {
+            let def = {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            }
+
+            if (!options) return def
+
+            let r = Object.assign({}, def, options)
+            if (objectHasKey(options, 'token')) {
+                delete r.token
+                r.headers.Authorization = 'Bearer ' + options.token
+            }
+
+            delete r.body
+            if (options.body) {
+                if (!objectIsEmpty(options.body)) {
+                    r.body = JSON.stringify(options.body)
+                }
+            }
+
+            return r
+        }
+
+        const handlers = {
+            JSONResponseHandler(response) {
+                return response.json()
+                    .then(json => {
+                        if (response.ok) {
+                            return json
+                        } else {
+                            return Promise.reject(Object.assign({}, json, {
+                                statusText: response.statusText,
+                                status: response.status
+                            }))
+                        }
+                    })
+            },
+            textResponseHandler(response) {
+                return response.text()
+                    .then(text => {
+                        if (response.ok) {
+                            return json
+                        } else {
+                            return Promise.reject({
+                                statusText: response.statusText,
+                                status: response.status,
+                                err: text
+                            })
+                        }
+                    })
+            }
+        }
+
+        function handleResponse(response) {
+            let contentType = response.headers.get('content-type')
+            if (contentType.includes('application/json')) {
+                return handlers.JSONResponseHandler(response)
+            } else if (contentType.includes('text/html')) {
+                return handlers.textResponseHandler(response)
+            } else {
+                throw new Error(`Sorry, content-type ${contentType} not supported`)
+            }
+        }
+
+        function objectIsEmpty(obj) {
+            return (Object.getOwnPropertyNames(obj).length === 0)
+        }
+
+        function objectHasKey(o, prop) {
+            return o.hasOwnProperty(prop)
+        }
+    </script>
+</body>
+</html>
